@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Trip Planner — Traveloop</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    /* AI Planner Styles */
+    .ai-banner {
+      background: linear-gradient(135deg, #1e1b4b, #3b0764);
+      border-radius: var(--radius-xl);
+      padding: 40px 36px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 28px;
+      color: white;
+      text-align: center;
+      border: 1px solid rgba(167, 139, 250, 0.2);
+    }
+    
+    .ai-banner::before {
+      content: '✨';
+      position: absolute;
+      left: 20px; top: 20px;
+      font-size: 60px;
+      opacity: 0.1;
+    }
+    
+    .ai-banner::after {
+      content: '🤖';
+      position: absolute;
+      right: 20px; bottom: 20px;
+      font-size: 80px;
+      opacity: 0.1;
+      transform: rotate(15deg);
+    }
+
+    .ai-title {
+      font-family: var(--font-display);
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+      background: linear-gradient(to right, #a78bfa, #f472b6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .ai-subtitle {
+      font-size: 16px;
+      color: #cbd5e1;
+      max-width: 500px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    .form-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .form-group input, .form-group select {
+      padding: 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-medium);
+      background: var(--bg-body);
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--brand-purple);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+      outline: none;
+    }
+
+    .style-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .style-card {
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--bg-body);
+    }
+
+    .style-card.selected {
+      border-color: var(--brand-purple);
+      background: rgba(124, 58, 237, 0.1);
+      color: var(--brand-purple);
+      font-weight: 700;
+    }
+
+    .style-card:hover {
+      border-color: var(--brand-purple);
+      transform: translateY(-2px);
+    }
+    
+    .style-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .btn-generate {
+      width: 100%;
+      padding: 16px;
+      font-size: 16px;
+      background: linear-gradient(135deg, #7c3aed, #ec4899);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .btn-generate:hover {
+      box-shadow: 0 8px 24px rgba(236, 72, 153, 0.3);
+      transform: translateY(-2px);
+    }
+
+    /* Loader */
+    .generating-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 15, 26, 0.95);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .ai-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(255,255,255,0.1);
+      border-top-color: #a78bfa;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 24px;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #a78bfa, #f472b6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .loading-sub {
+      color: #94a3b8;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Page Loader -->
+<div id="page-loader" class="page-loader">
+  <div class="logo">✈️ TRAVELOOP</div>
+  <div class="spinner"></div>
+</div>
+
+<div class="app-shell">
+  <div id="sidebar-mount"></div>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="hamburger" id="hamburger">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="topbar-title">AI Planner</div>
+      </div>
+    </div>
+
+    <div class="page-content">
+      
+      <div class="ai-banner animate-fadeInUp">
+        <div class="ai-title">Let AI Plan Your Dream Trip ✨</div>
+        <div class="ai-subtitle">Tell us where you want to go and what you love doing. Our intelligent planner will craft a complete, day-by-day itinerary with estimated budgets in seconds.</div>
+      </div>
+
+      <div class="form-container animate-fadeInUp-d1">
+        <form id="ai-planner-form">
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>Where to? (Destination)</label>
+              <input type="text" id="destination" placeholder="e.g., Tokyo, Japan" required>
+            </div>
+
+            <div class="form-group">
+              <label>Start Date</label>
+              <input type="date" id="start-date" required>
+            </div>
+
+            <div class="form-group">
+              <label>Number of Days</label>
+              <input type="number" id="days" min="1" max="14" value="3" required>
+            </div>
+
+            <div class="form-group">
+              <label>Total Budget (₹)</label>
+              <input type="number" id="budget" min="1000" step="500" value="80000" required>
+            </div>
+
+            <div class="form-group">
+              <label>Budget Level</label>
+              <select id="budget-level">
+                <option value="budget">Backpacker / Budget</option>
+                <option value="medium" selected>Standard / Comfort</option>
+                <option value="luxury">Luxury / Premium</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label>Travel Style</label>
+              <div class="style-cards">
+                <div class="style-card selected" data-style="relaxing">
+                  <div class="style-icon">🏖️</div>
+                  <div>Relaxing</div>
+                </div>
+                <div class="style-card" data-style="adventure">
+                  <div class="style-icon">🧗</div>
+                  <div>Adventure</div>
+                </div>
+                <div class="style-card" data-style="cultural">
+                  <div class="style-icon">🏛️</div>
+                  <div>Cultural</div>
+                </div>
+                <div class="style-card" data-style="foodie">
+                  <div class="style-icon">🍷</div>
+                  <div>Foodie</div>
+                </div>
+                <div class="style-card" data-style="nightlife">
+                  <div class="style-icon">🪩</div>
+                  <div>Nightlife</div>
+                </div>
+              </div>
+              <input type="hidden" id="travel-style" value="relaxing">
+            </div>
+          </div>
+
+          <button type="submit" class="btn-generate">
+            <span>✨ Generate Itinerary</span>
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- AI Generating Overlay -->
+<div class="generating-overlay" id="generating-overlay">
+  <div class="ai-spinner"></div>
+  <div class="loading-text">Crafting Your Itinerary...</div>
+  <div class="loading-sub" id="loading-message">Analyzing destination hotspots...</div>
+</div>
+
+<script src="utils.js"></script>
+<script>
+  let selectedStyle = 'relaxing';
+
+  // Sidebar script inclusion
+  fetch('_slidebar.html')
+    .then(r => r.text())
+    .then(html => {
+      document.getElementById('sidebar-mount').innerHTML = html;
+      initSidebar();
+      highlightActiveNav();
+    });
+
+  // Highlight active nav logic for sidebar injection
+  function highlightActiveNav() {
+    const links = document.querySelectorAll('.sidebar-nav .nav-link');
+    links.forEach(l => {
+      if (l.getAttribute('href') === 'ai_planner.html') {
+        l.classList.add('active');
+      } else {
+        l.classList.remove('active');
+      }
+    });
+  }
+
+  (async () => {
+    const user = await Auth.requireAuth();
+    if (!user) return;
+    renderUserInSidebar(user);
+
+    // Set default date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('start-date').value = tomorrow.toISOString().split('T')[0];
+
+    // Hide loader
+    setTimeout(() => {
+      const loader = document.getElementById('page-loader');
+      loader.style.opacity = '0';
+      setTimeout(() => loader.remove(), 400);
+    }, 400);
+
+    // Style selector logic
+    const styleCards = document.querySelectorAll('.style-card');
+    styleCards.forEach(card => {
+      card.addEventListener('click', () => {
+        styleCards.forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedStyle = card.getAttribute('data-style');
+        document.getElementById('travel-style').value = selectedStyle;
+      });
+    });
+
+    // Form submission
+    document.getElementById('ai-planner-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const payload = {
+        destination: document.getElementById('destination').value,
+        start_date: document.getElementById('start-date').value,
+        days: document.getElementById('days').value,
+        total_budget: document.getElementById('budget').value,
+        budget_level: document.getElementById('budget-level').value,
+        style: selectedStyle
+      };
+
+      showOverlay();
+
+      try {
+        const res = await API.post('/api/ai/plan', payload);
+        if (res.success && res.trip_id) {
+          Toast.success('Itinerary generated successfully!');
+          setTimeout(() => {
+            window.location.href = `trip_detail.html?id=${res.trip_id}`;
+          }, 1000);
+        } else {
+          hideOverlay();
+          Toast.error(res.error || 'Failed to generate itinerary.');
+        }
+      } catch (error) {
+        hideOverlay();
+        Toast.error('An error occurred. Please try again.');
+      }
+    });
+  })();
+
+  const loadingMessages = [
+    "Analyzing destination hotspots...",
+    "Finding the best local food...",
+    "Curating amazing activities...",
+    "Balancing the budget...",
+    "Finalizing your dream schedule..."
+  ];
+
+  function showOverlay() {
+    const overlay = document.getElementById('generating-overlay');
+    const msgEl = document.getElementById('loading-message');
+    overlay.style.display = 'flex';
+    
+    let msgIdx = 0;
+    const msgInterval = setInterval(() => {
+      msgIdx = (msgIdx + 1) % loadingMessages.length;
+      msgEl.textContent = loadingMessages[msgIdx];
+    }, 1500);
+
+    overlay.dataset.intervalId = msgInterval;
+  }
+
+  function hideOverlay() {
+    const overlay = document.getElementById('generating-overlay');
+    clearInterval(parseInt(overlay.dataset.intervalId));
+    overlay.style.display = 'none';
+  }
+</script>
+</body>
+</html>

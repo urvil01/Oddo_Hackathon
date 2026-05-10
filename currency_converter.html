@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Currency Converter — Traveloop</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    .converter-card {
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 30px;
+    }
+    .converter-title {
+      font-family: var(--font-royal);
+      font-size: 32px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      margin-bottom: 24px;
+      text-align: center;
+      color: var(--royal-gold);
+    }
+    .converter-group {
+      margin-bottom: 20px;
+    }
+    .converter-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .converter-input-wrapper {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .converter-input {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-md);
+      background: var(--bg-body);
+      color: var(--text-primary);
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .converter-select {
+      width: 100px;
+      padding: 12px;
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-md);
+      background: var(--bg-body);
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .swap-btn {
+      display: block;
+      margin: 0 auto 20px;
+      background: rgba(124, 58, 237, 0.1);
+      border: none;
+      color: var(--brand-purple);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s;
+    }
+    .swap-btn:hover {
+      background: var(--brand-purple);
+      color: white;
+      transform: rotate(180deg);
+    }
+    .result-display {
+      background: var(--grad-gold);
+      padding: 30px;
+      border-radius: var(--radius-lg);
+      margin: 30px 0;
+      text-align: center;
+      color: #05060b;
+      box-shadow: 0 10px 30px rgba(197,160,89,0.25);
+    }
+    .result-label {
+      font-size: 12px;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 5px;
+    }
+    .result-value {
+      font-family: var(--font-royal);
+      font-size: 44px;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+    .rate-info {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
+        <div class="topbar-title">Currency Converter</div>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="converter-card card animate-fadeInUp">
+        <h2 class="converter-title">Travel Currency Tools 💱</h2>
+        
+        <div class="converter-group">
+          <label class="converter-label">Amount</label>
+          <div class="converter-input-wrapper">
+            <input type="number" id="amount" class="converter-input" value="100" min="0">
+            <select id="from-currency" class="converter-select">
+              <option value="INR" selected>INR</option>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <button class="swap-btn" onclick="swapCurrencies()">⇅</button>
+
+        <div class="converter-group">
+          <label class="converter-label">Convert To</label>
+          <div class="converter-input-wrapper">
+            <select id="to-currency" class="converter-select" style="width: 100%;">
+              <option value="USD" selected>USD</option>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <div class="result-box">
+          <div class="result-label">Converted Amount</div>
+          <div id="result-value" class="result-value">Loading...</div>
+        </div>
+
+        <div id="rate-info" class="rate-info">Fetching latest exchange rates...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<template id="sidebar-template">
+  <div id="sidebar-backdrop" class="sidebar-backdrop" style="display:none;"></div>
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">✈️</div>
+      <span class="logo-text">TRAVELOOP</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-label">Main</div>
+        <a href="dashboard.html" class="nav-link"><span class="icon">🏠</span> Dashboard</a>
+        <a href="trips.html" class="nav-link"><span class="icon">🗺️</span> My Trips</a>
+        <a href="create_trip.html" class="nav-link"><span class="icon">➕</span> New Trip</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Explore</div>
+        <a href="discover.html" class="nav-link"><span class="icon">🌐</span> Discover</a>
+        <a href="ai_planner.html" class="nav-link"><span class="icon">🤖</span> AI Planner</a>
+        <a href="currency_converter.html" class="nav-link active"><span class="icon">💱</span> Currency</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Account</div>
+        <a href="profile.html" class="nav-link"><span class="icon">👤</span> Profile</a>
+        <a href="#" class="nav-link" onclick="Auth.logout()"><span class="icon">🚪</span> Sign Out</a>
+      </div>
+    </nav>
+  </aside>
+</template>
+
+<script src="utils.js"></script>
+<script>
+  let rates = {};
+
+  (async () => {
+    document.getElementById('sidebar-mount').innerHTML = document.getElementById('sidebar-template').innerHTML;
+    initSidebar();
+    await Auth.requireAuth();
+    await fetchRates();
+
+    // Event listeners
+    document.getElementById('amount').addEventListener('input', calculate);
+    document.getElementById('from-currency').addEventListener('change', async () => {
+      await fetchRates();
+      calculate();
+    });
+    document.getElementById('to-currency').addEventListener('change', calculate);
+  })();
+
+  async function fetchRates() {
+    const from = document.getElementById('from-currency').value;
+    const rateInfo = document.getElementById('rate-info');
+    rateInfo.textContent = `Updating rates for ${from}...`;
+    
+    try {
+      // Use a free public exchange rate API
+      const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${from}`);
+      const data = await response.json();
+      rates = data.rates;
+      rateInfo.textContent = `Last updated: ${data.date}`;
+      
+      // Populate dropdowns if they are empty (first run)
+      populateDropdowns(Object.keys(rates));
+    } catch (error) {
+      console.error('Failed to fetch rates', error);
+      Toast.error('Could not fetch exchange rates. Using offline estimates.');
+      // Mock rates as fallback
+      rates = { "INR": 1, "USD": 0.012, "EUR": 0.011, "GBP": 0.0094, "JPY": 1.83 };
+      rateInfo.textContent = 'Using offline estimated rates.';
+    }
+  }
+
+  function calculate() {
+    const amount = parseFloat(document.getElementById('amount').value) || 0;
+    const to = document.getElementById('to-currency').value;
+    const resultValue = document.getElementById('result-value');
+    
+    if (rates[to]) {
+      const converted = (amount * rates[to]).toFixed(2);
+      resultValue.textContent = `${new Intl.NumberFormat().format(converted)} ${to}`;
+    } else {
+      resultValue.textContent = '---';
+    }
+  }
+
+  function swapCurrencies() {
+    const from = document.getElementById('from-currency');
+    const to = document.getElementById('to-currency');
+    const temp = from.value;
+    from.value = to.value;
+    to.value = temp;
+    fetchRates().then(calculate);
+  }
+
+  function populateDropdowns(currencyCodes) {
+    const fromSelect = document.getElementById('from-currency');
+    const toSelect = document.getElementById('to-currency');
+    
+    // Only populate if they only have the initial default value
+    if (fromSelect.options.length > 1) return;
+
+    const fromVal = fromSelect.value;
+    const toVal = toSelect.value;
+
+    const html = currencyCodes.sort().map(code => `<option value="${code}">${code}</option>`).join('');
+    
+    fromSelect.innerHTML = html;
+    toSelect.innerHTML = html;
+    
+    fromSelect.value = fromVal;
+    toSelect.value = toVal;
+  }
+</script>
+</body>
+</html>
