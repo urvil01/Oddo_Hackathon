@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile — Traveloop</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    .profile-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding-top: 40px;
+    }
+
+    .avatar-wrapper {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .avatar-circle {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      border: 2px solid var(--brand-purple);
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .avatar-circle img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .avatar-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: 0.2s;
+      font-size: 14px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .avatar-circle:hover .avatar-overlay {
+      opacity: 1;
+    }
+
+    .danger-zone {
+      margin-top: 50px;
+      border-top: 1px solid var(--border-soft);
+      padding-top: 30px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="page-loader" class="page-loader">
+    <div class="spinner"></div>
+  </div>
+
+  <div class="app-shell">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-content">
+      <div class="topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
+          <div class="topbar-title">Profile</div>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <div class="profile-container animate-fadeInUp">
+
+          <div class="avatar-wrapper">
+            <input type="file" id="avatar-input" accept="image/*" style="display:none;"
+              onchange="handleAvatarUpload(event)">
+            <div class="avatar-circle" onclick="document.getElementById('avatar-input').click()" id="profile-avatar">
+              T
+              <div class="avatar-overlay">Change</div>
+            </div>
+            <div style="margin-top:10px; font-size:13px; color:var(--text-muted);">Click to update avatar</div>
+          </div>
+
+          <form id="profile-form" onsubmit="updateProfile(event)" class="card" style="padding: 30px;">
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input type="text" id="profile-name" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" id="profile-email" class="form-input" disabled
+                style="opacity:0.6; cursor:not-allowed;">
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full" id="save-btn">Save Changes</button>
+          </form>
+
+          <div class="danger-zone">
+            <h3 style="color:#ef4444; margin-bottom:10px;">Danger Zone</h3>
+            <p style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">Once you delete your account, there
+              is no going back. Please be certain.</p>
+            <button class="btn" style="background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid #ef4444;"
+              onclick="deleteAccount()">Delete Account</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <template id="sidebar-template">
+    <!-- Same as dashboard sidebar -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop" style="display:none;"></div>
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">✈️</div>
+        <span class="logo-text">TRAVELOOP</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <a href="dashboard.html" class="nav-link"><span class="icon">🏠</span> Dashboard</a>
+          <a href="trips.html" class="nav-link"><span class="icon">🗺️</span> My Trips</a>
+          <a href="profile.html" class="nav-link active"><span class="icon">👤</span> Profile</a>
+        </div>
+      </nav>
+    </aside>
+  </template>
+
+  <script src="utils.js"></script>
+  <script>
+    (async () => {
+      document.getElementById('sidebar-mount').innerHTML = document.getElementById('sidebar-template').innerHTML;
+      initSidebar();
+
+      const user = await Auth.requireAuth();
+      if (!user) return;
+
+      document.getElementById('profile-name').value = user.name;
+      document.getElementById('profile-email').value = user.email;
+
+      if (user.avatar) {
+        document.getElementById('profile-avatar').innerHTML = `<img src="/static/uploads/${user.avatar}" alt="avatar"><div class="avatar-overlay">Change</div>`;
+      }
+
+      document.getElementById('page-loader').style.display = 'none';
+    })();
+
+    async function updateProfile(e) {
+      e.preventDefault();
+      const btn = document.getElementById('save-btn');
+      setLoading(btn, true);
+      try {
+        await API.put('/api/profile', { name: document.getElementById('profile-name').value });
+        Toast.success('Profile updated successfully');
+      } catch (err) {
+        Toast.error('Failed to update profile');
+      }
+      setLoading(btn, false);
+    }
+
+    async function handleAvatarUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      try {
+        Toast.info('Uploading avatar...');
+        const res = await API.upload('/api/profile/avatar', formData);
+        document.getElementById('profile-avatar').innerHTML = `<img src="/static/uploads/${res.avatar}" alt="avatar"><div class="avatar-overlay">Change</div>`;
+        Toast.success('Avatar updated!');
+      } catch (err) {
+        Toast.error('Failed to upload avatar');
+      }
+    }
+
+    async function deleteAccount() {
+      if (!confirm('Are you absolutely sure you want to delete your account and all trips?')) return;
+      try {
+        await API.delete('/api/profile');
+        window.location.href = 'index.html';
+      } catch (err) {
+        Toast.error('Failed to delete account');
+      }
+    }
+  </script>
+</body>
+
+</html>

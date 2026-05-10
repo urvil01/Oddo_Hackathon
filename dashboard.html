@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Traveloop</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    /* ── Dashboard-specific styles ── */
+    .welcome-banner {
+      background: linear-gradient(135deg, #0a0c16, #151a2e);
+      border: 1px solid rgba(197,160,89,0.2);
+      border-radius: var(--radius-xl);
+      padding: 36px 40px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+
+    .welcome-banner::before {
+      content: '🏰';
+      position: absolute;
+      right: 40px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 90px;
+      opacity: 0.1;
+    }
+
+    .welcome-banner::after {
+      content: '';
+      position: absolute;
+      width: 300px; height: 300px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+      right: -60px; top: -80px;
+    }
+
+    .welcome-greeting {
+      font-family: var(--font-royal);
+      font-size: 16px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--royal-gold);
+      margin-bottom: 8px;
+    }
+
+    .welcome-name {
+      font-family: var(--font-royal);
+      font-size: 42px;
+      font-weight: 500;
+      color: white;
+      margin-bottom: 12px;
+    }
+
+    .welcome-sub {
+      opacity: 0.8;
+      font-size: 15px;
+    }
+
+    .welcome-cta {
+      margin-top: 20px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-white {
+      background: var(--grad-gold);
+      color: #05060b;
+      font-weight: 600;
+      padding: 12px 26px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s;
+    }
+
+    .btn-white:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+
+    .btn-white-ghost {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 10px 22px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-white-ghost:hover { background: rgba(255,255,255,0.25); }
+
+    /* Quick actions */
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .quick-action {
+      background: var(--bg-card);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 13px;
+    }
+
+    .quick-action:hover {
+      border-color: var(--royal-gold);
+      background: rgba(197,160,89,0.08);
+      color: var(--royal-gold-light);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    .quick-action-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    /* Destination cards */
+    .destination-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .destination-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-medium);
+    }
+
+    .destination-img {
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 52px;
+    }
+
+    .destination-info { padding: 14px; }
+    .destination-name { font-family: var(--font-display); font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .destination-country { font-size: 12px; color: var(--text-muted); }
+    .destination-cost { font-size: 13px; color: var(--text-accent); font-weight: 600; margin-top: 8px; }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Page Loader -->
+<div id="page-loader" class="page-loader">
+  <div class="logo">✈️ TRAVELOOP</div>
+  <div class="spinner"></div>
+</div>
+
+<div class="app-shell">
+  <!-- Sidebar injected by JS -->
+  <div id="sidebar-mount"></div>
+
+  <!-- Main -->
+  <div class="main-content">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="hamburger" id="hamburger">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="topbar-title">Dashboard</div>
+      </div>
+      <div class="topbar-actions">
+        <a href="create_trip.html" class="btn btn-primary btn-sm">
+          ✈️ New Trip
+        </a>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="page-content">
+
+      <!-- Welcome Banner -->
+      <div class="welcome-banner animate-fadeInUp">
+        <div class="welcome-greeting">👋 Welcome back</div>
+        <div class="welcome-name" id="welcome-name">Explorer</div>
+        <div class="welcome-sub">Ready for your next adventure? Let's make it unforgettable.</div>
+        <div class="welcome-cta">
+          <a href="create_trip.html" class="btn-white">✈️ Plan a Trip</a>
+          <a href="trips.html" class="btn-white-ghost">🗺️ My Trips</a>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="grid-4 animate-fadeInUp-d1" id="stats-grid">
+        <!-- Injected by JS -->
+        <div class="stat-card skeleton" style="height:100px;"></div>
+        <div class="stat-card skeleton" style="height:100px;"></div>
+        <div class="stat-card skeleton" style="height:100px;"></div>
+        <div class="stat-card skeleton" style="height:100px;"></div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div style="margin-top:28px;" class="animate-fadeInUp-d2">
+        <div class="section-header">
+          <div class="section-title">Quick Actions</div>
+        </div>
+        <div class="quick-actions" id="quick-actions">
+          <a href="create_trip.html" class="quick-action">
+            <div class="quick-action-icon">➕</div>
+            <div>New Trip</div>
+          </a>
+          <a href="trips.html" class="quick-action">
+            <div class="quick-action-icon">🗺️</div>
+            <div>My Trips</div>
+          </a>
+          <a href="ai_planner.html" class="quick-action">
+            <div class="quick-action-icon">🤖</div>
+            <div>AI Planner</div>
+          </a>
+          <a href="currency_converter.html" class="quick-action">
+            <div class="quick-action-icon">💱</div>
+            <div>Currency</div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Recent Trips -->
+      <div style="margin-top:28px;" class="animate-fadeInUp-d3">
+        <div class="section-header">
+          <div class="section-title">Recent Trips</div>
+          <a href="trips.html" class="btn btn-ghost btn-sm">View All →</a>
+        </div>
+        <div id="recent-trips-grid" class="grid-auto">
+          <!-- skeleton placeholders -->
+          <div class="skeleton" style="height:260px;border-radius:16px;"></div>
+          <div class="skeleton" style="height:260px;border-radius:16px;"></div>
+          <div class="skeleton" style="height:260px;border-radius:16px;"></div>
+        </div>
+        <div id="no-trips" style="display:none;">
+          <div class="empty-state">
+            <div class="empty-icon">✈️</div>
+            <div class="empty-title">No trips yet!</div>
+            <div class="empty-text">Start planning your first adventure. Every journey begins with a single step.</div>
+            <a href="create_trip.html" class="btn btn-primary">Plan Your First Trip</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Popular Destinations -->
+      <div style="margin-top:28px;" class="animate-fadeInUp-d4">
+        <div class="section-header">
+          <div class="section-title">✨ Popular Destinations</div>
+        </div>
+        <div class="grid-4" id="destinations-grid">
+          <!-- Injected statically -->
+        </div>
+      </div>
+
+      <!-- Upcoming Trips -->
+      <div style="margin-top:28px;" id="upcoming-section">
+        <div class="section-header">
+          <div class="section-title">📅 Upcoming Trips</div>
+        </div>
+        <div id="upcoming-list"></div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div><!-- /main-content -->
+</div><!-- /app-shell -->
+
+<!-- Sidebar HTML -->
+<template id="sidebar-template">
+  <div id="sidebar-backdrop" class="sidebar-backdrop" style="display:none;"></div>
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">✈️</div>
+      <span class="logo-text">TRAVELOOP</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-label">Main</div>
+        <a href="dashboard.html" class="nav-link active"><span class="icon">🏠</span> Dashboard</a>
+        <a href="trips.html" class="nav-link"><span class="icon">🗺️</span> My Trips</a>
+        <a href="create_trip.html" class="nav-link"><span class="icon">➕</span> New Trip</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Explore</div>
+        <a href="discover.html" class="nav-link"><span class="icon">🌐</span> Discover</a>
+        <a href="ai_planner.html" class="nav-link"><span class="icon">🤖</span> AI Planner</a>
+        <a href="currency_converter.html" class="nav-link"><span class="icon">💱</span> Currency</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Account</div>
+        <a href="profile.html" class="nav-link"><span class="icon">👤</span> Profile</a>
+        <a href="#" class="nav-link" onclick="Auth.logout()"><span class="icon">🚪</span> Sign Out</a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="profile.html" class="user-mini" style="text-decoration:none;">
+        <div class="user-avatar" id="sidebar-user-avatar">T</div>
+        <div class="user-info">
+          <div class="user-name truncate" id="sidebar-user-name">Loading...</div>
+          <div class="user-role">Explorer</div>
+        </div>
+        <span style="color:var(--text-muted);font-size:16px;">›</span>
+      </a>
+    </div>
+  </aside>
+</template>
+
+<script src="utils.js"></script>
+<script>
+// ── Static destinations data ──
+const DESTINATIONS = [
+  { name:'Paris', country:'France', logo:'✈️', grad:'linear-gradient(135deg,#7c3aed,#3b82f6)', cost:'₹1,60,000–₹2,80,000' },
+  { name:'Bali', country:'Indonesia', logo:'✈️', grad:'linear-gradient(135deg,#14b8a6,#3b82f6)', cost:'₹96,000–₹2,00,000' },
+  { name:'Tokyo', country:'Japan', logo:'✈️', grad:'linear-gradient(135deg,#f43f5e,#7c3aed)', cost:'₹2,00,000–₹3,20,000' },
+  { name:'Santorini', country:'Greece', logo:'✈️', grad:'linear-gradient(135deg,#3b82f6,#6366f1)', cost:'₹1,60,000–₹3,04,000' },
+];
+
+// ── Init Dashboard ──
+(async () => {
+  // Inject sidebar
+  document.getElementById('sidebar-mount').innerHTML = document.getElementById('sidebar-template').innerHTML;
+  initSidebar();
+
+  // Auth check
+  const user = await Auth.requireAuth();
+  if (!user) return;
+
+  // Update welcome & sidebar
+  document.getElementById('welcome-name').textContent = user.name + ' 👋';
+  renderUserInSidebar(user);
+
+  // Load stats
+  try {
+    const stats = await API.get('/api/dashboard/stats');
+    renderStats(stats);
+    renderRecentTrips(stats.recent_trips);
+    renderUpcoming(stats.upcoming_trips);
+  } catch (err) {
+    Toast.error('Failed to load dashboard data.');
+  }
+
+  // Render destinations
+  renderDestinations();
+
+  // Hide loader
+  setTimeout(() => {
+    const loader = document.getElementById('page-loader');
+    loader.style.opacity = '0';
+    setTimeout(() => loader.remove(), 400);
+  }, 600);
+})();
+
+
+function renderStats(stats) {
+  const grid = document.getElementById('stats-grid');
+  grid.innerHTML = `
+    <div class="stat-card animate-fadeInUp">
+      <div class="stat-icon" style="background:rgba(124,58,237,0.15);">✈️</div>
+      <div>
+        <div class="stat-label">Total Trips</div>
+        <div class="stat-value">${stats.total_trips}</div>
+        <div class="stat-sub">All time</div>
+      </div>
+    </div>
+    <div class="stat-card animate-fadeInUp-d1">
+      <div class="stat-icon" style="background:rgba(59,130,246,0.15);">🌍</div>
+      <div>
+        <div class="stat-label">Cities Visited</div>
+        <div class="stat-value">${stats.total_cities}</div>
+        <div class="stat-sub">Across all trips</div>
+      </div>
+    </div>
+    <div class="stat-card animate-fadeInUp-d2">
+      <div class="stat-icon" style="background:rgba(245,158,11,0.15);">💰</div>
+      <div>
+        <div class="stat-label">Total Spent</div>
+        <div class="stat-value">${formatCurrency(stats.total_spent)}</div>
+        <div class="stat-sub">Across all trips</div>
+      </div>
+    </div>
+    <div class="stat-card animate-fadeInUp-d3">
+      <div class="stat-icon" style="background:rgba(20,184,166,0.15);">📅</div>
+      <div>
+        <div class="stat-label">Upcoming</div>
+        <div class="stat-value">${stats.upcoming_trips.length}</div>
+        <div class="stat-sub">Trips planned</div>
+      </div>
+    </div>
+  `;
+}
+
+
+function renderRecentTrips(trips) {
+  const grid = document.getElementById('recent-trips-grid');
+  const empty = document.getElementById('no-trips');
+
+  if (!trips || trips.length === 0) {
+    grid.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+
+  grid.innerHTML = trips.map(trip => `
+    <a href="trip_detail.html?id=${trip.id}" class="card trip-card" style="text-decoration:none;">
+      ${renderTripCover(trip)}
+      <div class="trip-card-body">
+        <div style="display:flex;align-items:start;justify-content:space-between;gap:8px;margin-bottom:8px;">
+          <div class="trip-card-title">${trip.title}</div>
+          <span class="trip-status-badge status-${trip.status}">${trip.status}</span>
+        </div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">
+          ${trip.start_date ? `📅 ${formatDate(trip.start_date)}` : '📅 No dates set'}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;color:var(--text-accent);font-weight:600;">
+            💰 ${formatCurrency(trip.total_budget)}
+          </span>
+          <span style="font-size:12px;color:var(--text-muted);">
+            ${trip.stop_count || 0} stops
+          </span>
+        </div>
+      </div>
+    </a>
+  `).join('');
+}
+
+
+function renderUpcoming(trips) {
+  const section = document.getElementById('upcoming-section');
+  const list = document.getElementById('upcoming-list');
+
+  if (!trips || trips.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  list.innerHTML = trips.map(trip => {
+    const days = daysUntil(trip.start_date);
+    return `
+      <a href="trip_detail.html?id=${trip.id}" class="card" style="display:flex;align-items:center;gap:16px;padding:16px 20px;margin-bottom:10px;text-decoration:none;">
+        <div style="font-size:32px;">${getTripEmoji(trip.id)}</div>
+        <div style="flex:1;">
+          <div style="font-family:var(--font-display);font-weight:700;margin-bottom:4px;">${trip.title}</div>
+          <div style="font-size:13px;color:var(--text-muted);">
+            ${formatDate(trip.start_date)} → ${formatDate(trip.end_date)}
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:var(--font-royal);font-size:26px;font-weight:500;color:var(--royal-gold);letter-spacing:0.5px;">
+            ${days !== null ? (days > 0 ? days : 'Today!') : '—'}
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);">
+            ${days !== null && days > 0 ? 'days away' : ''}
+          </div>
+        </div>
+      </a>
+    `;
+  }).join('');
+}
+
+
+function renderDestinations() {
+  const grid = document.getElementById('destinations-grid');
+  grid.innerHTML = DESTINATIONS.map(d => `
+    <div class="destination-card">
+      <div class="destination-img" style="background:${d.grad};">${d.logo}</div>
+      <div class="destination-info">
+        <div class="destination-name">${d.name}</div>
+        <div class="destination-country">📍 ${d.country}</div>
+        <div class="destination-cost">${d.cost} avg</div>
+      </div>
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>

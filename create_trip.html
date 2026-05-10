@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Trip — Traveloop</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    .form-container { max-width: 600px; margin: 0 auto; padding: 30px 0; }
+    .search-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-medium);
+      border-top: none;
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+      z-index: 100;
+      max-height: 200px;
+      overflow-y: auto;
+      box-shadow: var(--shadow-md);
+    }
+    .suggestion-item {
+      padding: 10px 15px;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 14px;
+    }
+    .suggestion-item:hover {
+      background: rgba(124, 58, 237, 0.1);
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
+        <div class="topbar-title">Plan a New Trip</div>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="form-container animate-fadeInUp">
+        <form id="trip-form" onsubmit="createTrip(event)" class="card" style="padding: 30px;">
+          
+          <div class="form-group">
+            <label class="form-label">Trip Title <span style="color:#ef4444">*</span></label>
+            <input type="text" id="trip-title" class="form-input" placeholder="e.g., Summer in Paris" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Destination City <span style="color:#ef4444">*</span></label>
+            <div style="position:relative;" id="city-search-container">
+              <input type="text" id="trip-city" class="form-input" placeholder="e.g., Paris" required style="padding-left: 36px;" autocomplete="off">
+              <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:0.5;">🔍</span>
+              <div id="city-suggestions" class="search-suggestions" style="display:none;"></div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea id="trip-desc" class="form-input" placeholder="What is this trip about?" rows="3"></textarea>
+          </div>
+
+          <div style="display:flex; gap:16px;">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Start Date</label>
+              <input type="date" id="trip-start" class="form-input">
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">End Date</label>
+              <input type="date" id="trip-end" class="form-input">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Total Budget Estimate (INR)</label>
+            <input type="number" id="trip-budget" class="form-input" placeholder="e.g., 2000" min="0">
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+            <a href="trips.html" class="btn btn-ghost">Cancel</a>
+            <button type="submit" class="btn btn-primary" id="submit-btn">Create Trip ✈️</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<template id="sidebar-template">
+  <!-- Same as dashboard sidebar -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop" style="display:none;"></div>
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">✈️</div>
+      <span class="logo-text">TRAVELOOP</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <a href="dashboard.html" class="nav-link"><span class="icon">🏠</span> Dashboard</a>
+        <a href="trips.html" class="nav-link"><span class="icon">🗺️</span> My Trips</a>
+        <a href="create_trip.html" class="nav-link active"><span class="icon">➕</span> New Trip</a>
+      </div>
+    </nav>
+  </aside>
+</template>
+
+<script src="utils.js"></script>
+<script>
+  (async () => {
+    document.getElementById('sidebar-mount').innerHTML = document.getElementById('sidebar-template').innerHTML;
+    initSidebar();
+    await Auth.requireAuth();
+
+    // City Search Logic
+    const cityInput = document.getElementById('trip-city');
+    const suggestionsBox = document.getElementById('city-suggestions');
+    let debounceTimer;
+
+    cityInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      const query = cityInput.value.trim();
+      
+      if (query.length < 3) {
+        suggestionsBox.style.display = 'none';
+        return;
+      }
+
+      debounceTimer = setTimeout(async () => {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&featuretype=city&limit=5`);
+          const data = await res.json();
+          
+          if (data && data.length > 0) {
+            suggestionsBox.innerHTML = data.map(item => `
+              <div class="suggestion-item" onclick="selectCity('${item.display_name.replace(/'/g, "\\'")}')">
+                ${item.display_name}
+              </div>
+            `).join('');
+            suggestionsBox.style.display = 'block';
+          } else {
+            suggestionsBox.style.display = 'none';
+          }
+        } catch (err) {
+          console.error('City search failed', err);
+        }
+      }, 500);
+    });
+
+    // Close suggestions on click outside
+    document.addEventListener('click', (e) => {
+      if (!document.getElementById('city-search-container').contains(e.target)) {
+        suggestionsBox.style.display = 'none';
+      }
+    });
+  })();
+
+  function selectCity(name) {
+    document.getElementById('trip-city').value = name;
+    document.getElementById('city-suggestions').style.display = 'none';
+  }
+
+  async function createTrip(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    setLoading(btn, true);
+
+    const payload = {
+      title: document.getElementById('trip-title').value,
+      city: document.getElementById('trip-city').value,
+      description: document.getElementById('trip-desc').value,
+      start_date: document.getElementById('trip-start').value,
+      end_date: document.getElementById('trip-end').value,
+      total_budget: parseFloat(document.getElementById('trip-budget').value) || 0
+    };
+
+    try {
+      const trip = await API.post('/api/trips', payload);
+      launchConfetti();
+      Toast.success('Trip created successfully!');
+      setTimeout(() => {
+        window.location.href = `/trip_detail.html?id=${trip.id}`;
+      }, 1500);
+    } catch (err) {
+      Toast.error(err.message || 'Failed to create trip');
+      setLoading(btn, false);
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Trips — Traveloop</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    .trips-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-tab {
+      padding: 6px 16px;
+      border-radius: var(--radius-pill);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid var(--border-medium);
+      color: var(--text-muted);
+      background: transparent;
+    }
+
+    .filter-tab.active {
+      background: var(--grad-brand);
+      color: white;
+      border-color: transparent;
+    }
+
+    .trip-actions {
+      display: flex;
+      gap: 8px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .trip-card:hover .trip-actions { opacity: 1; }
+
+    .trip-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-soft);
+    }
+  </style>
+</head>
+<body>
+
+<div id="page-loader" class="page-loader">
+  <div class="logo">✈️ TRAVELOOP</div>
+  <div class="spinner"></div>
+</div>
+
+<div class="app-shell">
+  <div id="sidebar-mount"></div>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
+        <div class="topbar-title">My Trips</div>
+      </div>
+      <div class="topbar-actions">
+        <a href="create_trip.html" class="btn btn-primary btn-sm">✈️ New Trip</a>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="trips-header animate-fadeInUp">
+        <div>
+          <h1 style="font-family:var(--font-display);font-size:30px;font-weight:700;margin-bottom:4px;letter-spacing:-0.5px;">Your Adventures</h1>
+          <p style="color:var(--text-muted);font-size:14px;" id="trip-count">Loading trips...</p>
+        </div>
+        <div class="filter-tabs">
+          <button class="filter-tab active" onclick="filterTrips('all', this)">All</button>
+          <button class="filter-tab" onclick="filterTrips('planning', this)">Planning</button>
+          <button class="filter-tab" onclick="filterTrips('ongoing', this)">Ongoing</button>
+          <button class="filter-tab" onclick="filterTrips('completed', this)">Completed</button>
+        </div>
+      </div>
+
+      <div class="grid-auto animate-fadeInUp-d1" id="trips-grid">
+        <div class="skeleton" style="height:280px;border-radius:16px;"></div>
+        <div class="skeleton" style="height:280px;border-radius:16px;"></div>
+        <div class="skeleton" style="height:280px;border-radius:16px;"></div>
+      </div>
+
+      <div id="no-trips" style="display:none;">
+        <div class="empty-state">
+          <div class="empty-icon">🗺️</div>
+          <div class="empty-title">No trips found</div>
+          <div class="empty-text">Start planning your first epic adventure. The world is waiting!</div>
+          <a href="create_trip.html" class="btn btn-primary">Plan a Trip</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm modal -->
+<div id="delete-modal" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🗑️ Delete Trip?</div>
+      <div class="modal-close" onclick="closeModal('delete-modal')">✕</div>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text-secondary);">Are you sure you want to delete "<strong id="delete-trip-name"></strong>"? This action cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('delete-modal')">Cancel</button>
+      <button class="btn btn-danger" id="confirm-delete-btn" onclick="confirmDelete()">Delete Trip</button>
+    </div>
+  </div>
+</div>
+
+<template id="sidebar-template">
+  <div id="sidebar-backdrop" class="sidebar-backdrop" style="display:none;"></div>
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">✈️</div>
+      <span class="logo-text">TRAVELOOP</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-label">Main</div>
+        <a href="dashboard.html" class="nav-link"><span class="icon">🏠</span> Dashboard</a>
+        <a href="trips.html" class="nav-link active"><span class="icon">🗺️</span> My Trips</a>
+        <a href="create_trip.html" class="nav-link"><span class="icon">➕</span> New Trip</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Explore</div>
+        <a href="discover.html" class="nav-link"><span class="icon">🌐</span> Discover</a>
+        <a href="ai_planner.html" class="nav-link"><span class="icon">🤖</span> AI Planner</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Account</div>
+        <a href="profile.html" class="nav-link"><span class="icon">👤</span> Profile</a>
+        <a href="#" class="nav-link" onclick="Auth.logout()"><span class="icon">🚪</span> Sign Out</a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="profile.html" class="user-mini" style="text-decoration:none;">
+        <div class="user-avatar" id="sidebar-user-avatar">T</div>
+        <div class="user-info">
+          <div class="user-name truncate" id="sidebar-user-name">Loading...</div>
+          <div class="user-role">Explorer</div>
+        </div>
+        <span style="color:var(--text-muted);">›</span>
+      </a>
+    </div>
+  </aside>
+</template>
+
+<script src="utils.js"></script>
+<script>
+  let allTrips = [];
+  let deleteTargetId = null;
+
+  (async () => {
+    document.getElementById('sidebar-mount').innerHTML = document.getElementById('sidebar-template').innerHTML;
+    initSidebar();
+
+    const user = await Auth.requireAuth();
+    if (!user) return;
+    renderUserInSidebar(user);
+
+    try {
+      allTrips = await API.get('/api/trips');
+      renderTrips(allTrips);
+    } catch (err) {
+      Toast.error('Failed to load trips.');
+    }
+
+    setTimeout(() => {
+      const l = document.getElementById('page-loader');
+      l.style.opacity = '0';
+      setTimeout(() => l.remove(), 400);
+    }, 500);
+  })();
+
+  function filterTrips(status, btn) {
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    const filtered = status === 'all' ? allTrips : allTrips.filter(t => t.status === status);
+    renderTrips(filtered);
+  }
+
+  function renderTrips(trips) {
+    const grid = document.getElementById('trips-grid');
+    const empty = document.getElementById('no-trips');
+    const count = document.getElementById('trip-count');
+
+    count.textContent = `${trips.length} trip${trips.length !== 1 ? 's' : ''}`;
+
+    if (!trips.length) {
+      grid.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+
+    grid.style.display = 'grid';
+    empty.style.display = 'none';
+
+    grid.innerHTML = trips.map(trip => {
+      const days = tripDuration(trip.start_date, trip.end_date);
+      const pct = trip.total_budget ? Math.min((trip.spent / trip.total_budget) * 100, 100) : 0;
+      return `
+        <div class="card trip-card">
+          <a href="trip_detail.html?id=${trip.id}" style="text-decoration:none;display:block;">
+            ${renderTripCover(trip)}
+            <div class="trip-card-body">
+              <div style="display:flex;align-items:start;justify-content:space-between;gap:8px;margin-bottom:8px;">
+                <div class="trip-card-title">${trip.title}</div>
+                <span class="trip-status-badge status-${trip.status}">${trip.status}</span>
+              </div>
+              ${trip.description ? `<div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${trip.description}</div>` : ''}
+              <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">
+                📅 ${trip.start_date ? formatDate(trip.start_date) : 'No date'} ${days ? `· ${days} days` : ''}
+              </div>
+              <div style="margin-bottom:4px;">
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:4px;">
+                  <span>Budget</span>
+                  <span>${formatCurrency(trip.spent||0)} / ${formatCurrency(trip.total_budget)}</span>
+                </div>
+                <div class="progress-wrap">
+                  <div class="progress-bar ${pct >= 90 ? 'danger' : ''}" style="width:${pct}%"></div>
+                </div>
+              </div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">📍 ${trip.stop_count||0} stops planned</div>
+            </div>
+          </a>
+          <div class="trip-card-footer">
+            <span style="font-size:13px;color:var(--text-muted);">Created ${formatDate(trip.created_at)}</span>
+            <div class="trip-actions">
+              <a href="trip_detail.html?id=${trip.id}" class="btn btn-ghost btn-sm">View</a>
+              <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); promptDelete(${trip.id}, '${trip.title.replace(/'/g,"\\'")}')">Delete</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function promptDelete(id, name) {
+    deleteTargetId = id;
+    document.getElementById('delete-trip-name').textContent = name;
+    openModal('delete-modal');
+  }
+
+  async function confirmDelete() {
+    if (!deleteTargetId) return;
+    const btn = document.getElementById('confirm-delete-btn');
+    setLoading(btn, true);
+    try {
+      await API.delete(`/api/trips/${deleteTargetId}`);
+      closeModal('delete-modal');
+      Toast.success('Trip deleted.');
+      allTrips = allTrips.filter(t => t.id !== deleteTargetId);
+      renderTrips(allTrips);
+    } catch (err) {
+      Toast.error(err.message);
+      setLoading(btn, false);
+    }
+  }
+</script>
+</body>
+</html>
