@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify OTP — Traveloop</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: var(--bg-deep);
+      padding: 20px;
+    }
+
+    .verify-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-xl);
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 440px;
+      text-align: center;
+      animation: fadeInScale 0.4s ease forwards;
+    }
+
+    .verify-icon {
+      width: 80px;
+      height: 80px;
+      background: var(--grad-brand);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 24px;
+      box-shadow: var(--shadow-glow);
+    }
+
+    .verify-title {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .verify-sub {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .verify-email {
+      color: var(--text-accent);
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    /* OTP Input boxes */
+    .otp-inputs {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .otp-box {
+      width: 52px;
+      height: 56px;
+      background: var(--bg-elevated);
+      border: 2px solid var(--border-medium);
+      border-radius: var(--radius-md);
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      text-align: center;
+      color: var(--text-primary);
+      transition: all 0.2s;
+    }
+
+    .otp-box:focus {
+      border-color: var(--brand-purple);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+      outline: none;
+    }
+
+    .otp-box.filled {
+      border-color: var(--brand-purple);
+      color: var(--brand-purple);
+    }
+
+    .timer {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .timer span {
+      color: var(--brand-amber);
+      font-weight: 700;
+    }
+
+    .resend-btn {
+      background: none;
+      border: none;
+      color: var(--text-accent);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 24px;
+      transition: opacity 0.2s;
+    }
+
+    .resend-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .back-link {
+      color: var(--text-muted);
+      font-size: 13px;
+      display: inline-block;
+      margin-top: 16px;
+    }
+
+    .back-link:hover {
+      color: var(--text-primary);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="verify-card">
+    <div class="verify-icon">📧</div>
+    <div class="verify-title">Verify your email</div>
+    <div class="verify-sub">We sent a 6-digit OTP to</div>
+    <div class="verify-email" id="display-email">your email address</div>
+
+    <div class="otp-inputs" id="otp-inputs">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]*">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]*">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]*">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]*">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]*">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]*">
+    </div>
+
+    <button id="verify-btn" class="btn btn-primary w-full" style="height:48px;font-size:15px;" onclick="submitOTP()">
+      Verify & Continue →
+    </button>
+
+    <div class="timer" id="timer-text">Resend OTP in <span id="countdown">60</span>s</div>
+    <button class="resend-btn" id="resend-btn" onclick="resendOTP()" disabled>Resend OTP</button>
+
+    <div>
+      <a href="index.html" class="back-link">← Back to login</a>
+    </div>
+  </div>
+
+  <script src="utils.js"></script>
+  <script>
+    // Get email from session (try to read from URL param or localStorage)
+    const pendingEmail = localStorage.getItem('traveloop_pending_email') || '';
+    document.getElementById('display-email').textContent = pendingEmail || 'your email address';
+
+    // OTP input behavior
+    const boxes = document.querySelectorAll('.otp-box');
+    boxes.forEach((box, i) => {
+      box.addEventListener('input', e => {
+        const val = e.target.value.replace(/\D/g, '');
+        e.target.value = val;
+        if (val) {
+          e.target.classList.add('filled');
+          if (i < boxes.length - 1) boxes[i + 1].focus();
+          // Auto-submit if all filled
+          if ([...boxes].every(b => b.value)) submitOTP();
+        } else {
+          e.target.classList.remove('filled');
+        }
+      });
+
+      box.addEventListener('keydown', e => {
+        if (e.key === 'Backspace' && !box.value && i > 0) {
+          boxes[i - 1].value = '';
+          boxes[i - 1].classList.remove('filled');
+          boxes[i - 1].focus();
+        }
+      });
+
+      box.addEventListener('paste', e => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+        [...text].slice(0, 6).forEach((ch, idx) => {
+          if (boxes[idx]) {
+            boxes[idx].value = ch;
+            boxes[idx].classList.add('filled');
+          }
+        });
+        if (text.length >= 6) submitOTP();
+      });
+    });
+    boxes[0].focus();
+
+    // Timer & resend
+    let timer = 60;
+    const countdown = document.getElementById('countdown');
+    const resendBtn = document.getElementById('resend-btn');
+    const timerText = document.getElementById('timer-text');
+
+    const interval = setInterval(() => {
+      timer--;
+      countdown.textContent = timer;
+      if (timer <= 0) {
+        clearInterval(interval);
+        timerText.style.display = 'none';
+        resendBtn.disabled = false;
+      }
+    }, 1000);
+
+    function getOTP() {
+      return [...boxes].map(b => b.value).join('');
+    }
+
+    let isSubmitting = false;
+    async function submitOTP() {
+      if (isSubmitting) return;
+      const otp = getOTP();
+      if (otp.length < 6) {
+        Toast.warn('Please enter the complete 6-digit OTP.');
+        return;
+      }
+
+      isSubmitting = true;
+      const btn = document.getElementById('verify-btn');
+      setLoading(btn, true);
+
+      try {
+        await API.post('/api/verify-otp', { email: pendingEmail, otp });
+        Toast.success('Email verified! Welcome to Traveloop 🎉');
+        localStorage.removeItem('traveloop_pending_email');
+        window.location.href = 'dashboard.html';
+      } catch (err) {
+        isSubmitting = false;
+        Toast.error(err.message);
+        setLoading(btn, false);
+        boxes.forEach(b => { b.value = ''; b.classList.remove('filled'); });
+        boxes[0].focus();
+      }
+    }
+
+    async function resendOTP() {
+      resendBtn.disabled = true;
+      try {
+        const res = await API.post('/api/resend-otp', { email: pendingEmail });
+        Toast.success(res.message || 'New OTP sent!');
+      } catch (err) {
+        Toast.error(err.message);
+        resendBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+
+</html>

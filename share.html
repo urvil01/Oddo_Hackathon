@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shared Trip — Traveloop</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    body {
+      background: var(--bg-deep);
+      padding: 40px;
+    }
+
+    .shared-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--bg-card);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .cover {
+      height: 300px;
+      background: var(--grad-brand);
+      position: relative;
+    }
+
+    .cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .content {
+      padding: 40px;
+    }
+
+    .title {
+      font-family: var(--font-display);
+      font-size: 40px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .author {
+      color: var(--text-muted);
+      font-size: 15px;
+      margin-bottom: 30px;
+    }
+
+    .stop-item {
+      padding: 20px;
+      background: var(--bg-base);
+      border-radius: 12px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .stop-city {
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .stop-country {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="page-loader" class="page-loader">
+    <div class="spinner"></div>
+  </div>
+
+  <div class="shared-container" id="shared-container" style="display:none;">
+    <div class="cover" id="trip-cover"></div>
+    <div class="content">
+      <div class="title" id="trip-title"></div>
+      <div class="author" id="trip-author"></div>
+
+      <h3 style="margin-bottom:20px;">Itinerary Stops</h3>
+      <div id="trip-stops"></div>
+    </div>
+  </div>
+
+  <script src="utils.js"></script>
+  <script>
+    const token = window.location.pathname.split('/').pop();
+
+    (async () => {
+      try {
+        const trip = await API.get(`/api/share/${token}`);
+        document.getElementById('trip-title').textContent = trip.title;
+        document.getElementById('trip-author').textContent = `Shared by ${trip.author}`;
+
+        if (trip.cover_image) {
+          document.getElementById('trip-cover').innerHTML = `<img src="/static/uploads/${trip.cover_image}">`;
+        }
+
+        const stopsHtml = trip.stops.map(stop => `
+        <div class="stop-item">
+          <div style="font-size:30px;">📍</div>
+          <div>
+            <div class="stop-city">${stop.city}</div>
+            <div class="stop-country">${stop.country}</div>
+          </div>
+        </div>
+      `).join('');
+
+        document.getElementById('trip-stops').innerHTML = stopsHtml || '<p>No stops added yet.</p>';
+
+        document.getElementById('page-loader').style.display = 'none';
+        document.getElementById('shared-container').style.display = 'block';
+      } catch (err) {
+        document.body.innerHTML = `<div style="text-align:center; padding:100px; color:var(--text-muted);">
+        <h1>404</h1><p>Trip not found or is private.</p>
+        <a href="/index.html" class="btn btn-primary" style="margin-top:20px;">Go to Traveloop</a>
+      </div>`;
+      }
+    })();
+  </script>
+</body>
+
+</html>

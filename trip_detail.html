@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trip Details — Traveloop</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    .cover-header { height: 250px; background: var(--bg-card); position: relative; overflow: hidden; }
+    .cover-img { width: 100%; height: 100%; object-fit: cover; }
+    .cover-overlay { position: absolute; inset: 0; background: linear-gradient(to top, var(--bg-deep), transparent); }
+    .trip-header-info { position: absolute; bottom: 30px; left: 40px; right: 40px; }
+    .trip-title { font-family: var(--font-royal); font-size: 46px; font-weight: 500; color: white; margin-bottom: 8px; letter-spacing: 0; }
+    .trip-meta { color: rgba(255,255,255,0.8); font-size: 14px; }
+    
+    .nav-tabs { display: flex; gap: 20px; border-bottom: 1px solid var(--border-soft); margin-bottom: 20px; padding: 0 40px; }
+    .tab-link { padding: 15px 0; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; }
+    .nav-tab.active { color: var(--royal-gold); border-bottom: 2px solid var(--royal-gold); }
+    .tab-content { display: none; padding: 0 40px; }
+    .tab-content.active { display: block; }
+    
+    .timeline-item { display: flex; gap: 20px; margin-bottom: 20px; }
+    .timeline-date { width: 80px; text-align: right; font-weight: bold; color: var(--brand-purple); }
+    .timeline-content { flex: 1; background: var(--bg-card); padding: 15px; border-radius: 8px; border: 1px solid var(--border-soft); }
+    
+    .upload-btn { position: absolute; top: 20px; right: 40px; background: rgba(0,0,0,0.5); color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); }
+    .upload-btn:hover { background: rgba(0,0,0,0.7); }
+    
+    .share-btn { position: absolute; top: 20px; right: 150px; background: var(--brand-purple); color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; border: none; }
+    
+    .action-row { margin-bottom: 15px; display: flex; justify-content: flex-end; }
+  </style>
+</head>
+<body>
+
+<div id="page-loader" class="page-loader"><div class="spinner"></div></div>
+
+<div class="app-shell">
+  <div id="sidebar-mount"></div>
+
+  <div class="main-content" style="padding-top: 0; padding-left: 260px;">
+    
+    <div class="cover-header" id="cover-header">
+      <div id="cover-placeholder" style="width:100%;height:100%;background:var(--grad-brand);"></div>
+      <div class="cover-overlay"></div>
+      <div class="trip-header-info">
+        <div class="trip-title" id="trip-title">Loading...</div>
+        <div class="trip-meta" id="trip-meta"></div>
+      </div>
+      
+      <input type="file" id="cover-input" accept="image/*" style="display:none;" onchange="uploadCover(event)">
+      <button class="upload-btn" onclick="document.getElementById('cover-input').click()">📷 Change Cover</button>
+      <button class="share-btn" onclick="toggleShare()">🔗 Share</button>
+    </div>
+
+    <div class="nav-tabs">
+      <div class="tab-link active" onclick="switchTab('itinerary')">Itinerary</div>
+      <div class="tab-link" onclick="switchTab('budget')">Budget</div>
+      <div class="tab-link" onclick="switchTab('packing')">Packing</div>
+      <div class="tab-link" onclick="switchTab('notes')">Notes</div>
+    </div>
+
+    <!-- Itinerary Tab -->
+    <div id="tab-itinerary" class="tab-content active">
+      <div class="action-row">
+        <button class="btn btn-primary btn-sm" onclick="openModal('add-stop-modal')">➕ Add Stop</button>
+        <button class="btn btn-secondary btn-sm" style="margin-left: 10px;" onclick="openModal('add-activity-modal')">➕ Add Activity</button>
+      </div>
+      <div id="timeline-container">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- Budget Tab -->
+    <div id="tab-budget" class="tab-content">
+      <div class="action-row">
+        <button class="btn btn-primary btn-sm" onclick="openModal('add-expense-modal')">➕ Add Expense</button>
+      </div>
+      <div class="card" style="padding: 20px; margin-bottom: 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <h3 style="margin:0;">Budget Summary</h3>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Convert to:</label>
+            <select id="budget-currency-conv" class="form-input" style="width:90px; padding:6px; font-size:12px; border-color:rgba(197,160,89,0.3); background:rgba(0,0,0,0.2);" onchange="renderBudget()">
+              <option value="INR">INR</option>
+              <option value="USD" selected>USD</option>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div class="stat-label">Total Budget</div>
+            <div style="font-size:32px; font-weight:500; font-family:var(--font-royal); color:var(--royal-gold);" id="budget-total">₹0</div>
+            <div style="font-size:12px; color:var(--royal-gold-light); font-weight:500;" id="budget-total-conv"></div>
+          </div>
+          <div>
+            <div class="stat-label">Total Spent</div>
+            <div style="font-size:24px; font-weight:bold; color:#ef4444;" id="budget-spent">₹0</div>
+            <div style="font-size:12px; color:#ef4444; font-weight:bold;" id="budget-spent-conv"></div>
+          </div>
+          <div>
+            <div class="stat-label">Remaining</div>
+            <div style="font-size:24px; font-weight:bold; color:#10b981;" id="budget-rem">₹0</div>
+            <div style="font-size:12px; color:#10b981; font-weight:bold;" id="budget-rem-conv"></div>
+          </div>
+        </div>
+      </div>
+      <div id="expenses-container"></div>
+    </div>
+
+    <!-- Packing Tab -->
+    <div id="tab-packing" class="tab-content">
+      <div class="action-row">
+        <button class="btn btn-primary btn-sm" onclick="openModal('add-packing-modal')">➕ Add Item</button>
+      </div>
+      <div id="packing-container"></div>
+    </div>
+
+    <!-- Notes Tab -->
+    <div id="tab-notes" class="tab-content">
+      <div class="action-row">
+        <button class="btn btn-primary btn-sm" onclick="openModal('add-note-modal')">➕ Add Note</button>
+      </div>
+      <div id="notes-container" class="grid-auto"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Template Example -->
+<div id="add-stop-modal" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center;">
+  <div class="card" style="width:400px; padding:20px;">
+    <h3 style="margin-bottom:15px;">Add Stop</h3>
+    <div class="form-group">
+      <label class="form-label">City</label>
+      <input type="text" id="stop-city" class="form-input">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Country</label>
+      <input type="text" id="stop-country" class="form-input">
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+      <button class="btn btn-ghost" onclick="closeModal('add-stop-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addStop()">Add Stop</button>
+    </div>
+  </div>
+</div>
+
+<div id="add-activity-modal" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center;">
+  <div class="card" style="width:400px; padding:20px;">
+    <h3 style="margin-bottom:15px;">Add Activity</h3>
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input type="text" id="act-name" class="form-input">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input type="date" id="act-date" class="form-input">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cost</label>
+      <input type="number" id="act-cost" class="form-input">
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+      <button class="btn btn-ghost" onclick="closeModal('add-activity-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addActivity()">Add Activity</button>
+    </div>
+  </div>
+</div>
+
+<div id="add-expense-modal" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center;">
+  <div class="card" style="width:400px; padding:20px;">
+    <h3 style="margin-bottom:15px;">Add Expense</h3>
+    <div class="form-group">
+      <label class="form-label">Amount</label>
+      <input type="number" id="exp-amount" class="form-input">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <input type="text" id="exp-category" class="form-input" placeholder="e.g. Food, Transport">
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+      <button class="btn btn-ghost" onclick="closeModal('add-expense-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addExpense()">Add Expense</button>
+    </div>
+  </div>
+</div>
+
+<div id="add-packing-modal" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center;">
+  <div class="card" style="width:400px; padding:20px;">
+    <h3 style="margin-bottom:15px;">Add Item</h3>
+    <div class="form-group">
+      <label class="form-label">Item Name</label>
+      <input type="text" id="pack-name" class="form-input">
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+      <button class="btn btn-ghost" onclick="closeModal('add-packing-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addPackingItem()">Add Item</button>
+    </div>
+  </div>
+</div>
+
+<div id="add-note-modal" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center;">
+  <div class="card" style="width:400px; padding:20px;">
+    <h3 style="margin-bottom:15px;">Add Note</h3>
+    <div class="form-group">
+      <label class="form-label">Title</label>
+      <input type="text" id="note-title" class="form-input">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Content</label>
+      <textarea id="note-content" class="form-input" rows="4"></textarea>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+      <button class="btn btn-ghost" onclick="closeModal('add-note-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addNote()">Add Note</button>
+    </div>
+  </div>
+</div>
+
+<template id="sidebar-template">
+  <!-- Sidebar content -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">✈️</div><span class="logo-text">TRAVELOOP</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <a href="dashboard.html" class="nav-link"><span class="icon">🏠</span> Dashboard</a>
+        <a href="trips.html" class="nav-link active"><span class="icon">🗺️</span> My Trips</a>
+      </div>
+    </nav>
+  </aside>
+</template>
+
+<script src="utils.js"></script>
+<script>
+  let currentTripId = new URLSearchParams(window.location.search).get('id') || window.location.pathname.split('/').pop();
+  let tripData = null;
+
+  (async () => {
+    document.getElementById('sidebar-mount').innerHTML = document.getElementById('sidebar-template').innerHTML;
+    initSidebar();
+    await Auth.requireAuth();
+    await loadTrip();
+  })();
+
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-link').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    document.getElementById('tab-' + tabId).classList.add('active');
+  }
+
+  async function loadTrip() {
+    try {
+      tripData = await API.get('/api/trips/' + currentTripId);
+      document.getElementById('trip-title').textContent = tripData.title;
+      document.getElementById('trip-meta').textContent = `${formatDate(tripData.start_date)} - ${formatDate(tripData.end_date)} • ${tripData.status}`;
+      
+      if (tripData.cover_image) {
+        document.getElementById('cover-placeholder').innerHTML = `<img src="/static/uploads/${tripData.cover_image}" class="cover-img">`;
+      }
+      
+      renderItinerary();
+      renderBudget();
+      renderPacking();
+      renderNotes();
+      
+      document.getElementById('page-loader').style.display = 'none';
+    } catch (err) {
+      Toast.error('Failed to load trip details');
+    }
+  }
+
+  async function uploadCover(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('cover', file);
+    try {
+      Toast.info('Uploading cover...');
+      await API.upload(`/api/trips/${currentTripId}/cover`, formData);
+      Toast.success('Cover updated!');
+      loadTrip();
+    } catch (err) {
+      Toast.error('Upload failed');
+    }
+  }
+
+  async function toggleShare() {
+    try {
+      const res = await API.post(`/api/trips/${currentTripId}/share`);
+      if (res.is_public) {
+        const url = `${window.location.origin}/share/${res.share_token}`;
+        navigator.clipboard.writeText(url);
+        Toast.success('Trip is public! Link copied to clipboard.');
+      } else {
+        Toast.info('Trip is now private.');
+      }
+    } catch (err) {
+      Toast.error('Failed to update share settings');
+    }
+  }
+
+  function renderItinerary() {
+    const container = document.getElementById('timeline-container');
+    let html = '';
+    
+    if (tripData.stops && tripData.stops.length > 0) {
+      html += tripData.stops.map(stop => `
+        <div class="timeline-item">
+          <div class="timeline-date">${stop.city}</div>
+          <div class="timeline-content">
+            <h4>${stop.city}, ${stop.country}</h4>
+            <p style="font-size:12px;color:var(--text-muted);">${formatDate(stop.arrival_date)} - ${formatDate(stop.departure_date)}</p>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      html += '<div class="empty-state">No stops added yet.</div>';
+    }
+
+    if (tripData.activities && tripData.activities.length > 0) {
+      html += '<h4 style="margin-top:20px;margin-bottom:10px;">Activities</h4>';
+      html += tripData.activities.map(a => `
+        <div class="card" style="padding:15px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <strong>${a.name}</strong>
+            <div style="font-size:12px;color:var(--text-muted);">${a.date || 'No Date'} ${a.time || ''}</div>
+          </div>
+          <div style="font-weight:bold;color:var(--brand-purple);">${formatCurrency(a.cost)}</div>
+        </div>
+      `).join('');
+    }
+    
+    container.innerHTML = html;
+  }
+
+  async function renderBudget() {
+    document.getElementById('budget-total').textContent = formatCurrency(tripData.total_budget);
+    let spent = tripData.budgets ? tripData.budgets.reduce((sum, b) => sum + b.amount, 0) : 0;
+    let actSpent = tripData.activities ? tripData.activities.reduce((sum, a) => sum + a.cost, 0) : 0;
+    spent += actSpent;
+    
+    document.getElementById('budget-spent').textContent = formatCurrency(spent);
+    const remaining = tripData.total_budget - spent;
+    document.getElementById('budget-rem').textContent = formatCurrency(remaining);
+
+    // Currency Conversion for International Trip Feature
+    const targetCurr = document.getElementById('budget-currency-conv').value;
+    const totalConv = document.getElementById('budget-total-conv');
+    const spentConv = document.getElementById('budget-spent-conv');
+    const remConv = document.getElementById('budget-rem-conv');
+
+    if (targetCurr !== 'INR') {
+      try {
+        const response = await fetch(`https://api.exchangerate-api.com/v4/latest/INR`);
+        const data = await response.json();
+        
+        // Populate dropdown if not already populated
+        const selector = document.getElementById('budget-currency-conv');
+        if (selector.options.length <= 2) {
+          const codes = Object.keys(data.rates).sort();
+          const currentVal = selector.value;
+          selector.innerHTML = codes.map(c => `<option value="${c}">${c}</option>`).join('');
+          selector.value = currentVal;
+        }
+
+        const rate = data.rates[targetCurr];
+        if (rate) {
+          totalConv.textContent = `≈ ${new Intl.NumberFormat('en-US', { style: 'currency', currency: targetCurr }).format(tripData.total_budget * rate)}`;
+          spentConv.textContent = `≈ ${new Intl.NumberFormat('en-US', { style: 'currency', currency: targetCurr }).format(spent * rate)}`;
+          remConv.textContent = `≈ ${new Intl.NumberFormat('en-US', { style: 'currency', currency: targetCurr }).format(remaining * rate)}`;
+        }
+      } catch (e) {
+        console.error('Conversion failed', e);
+      }
+    } else {
+      totalConv.textContent = '';
+      spentConv.textContent = '';
+      remConv.textContent = '';
+    }
+
+    let html = '';
+    if (tripData.budgets && tripData.budgets.length > 0) {
+      html += tripData.budgets.map(b => `
+        <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid var(--border-soft);">
+          <div>
+            <strong>${b.category || 'Misc'}</strong>
+          </div>
+          <div style="color:#ef4444; font-weight:bold;">${formatCurrency(b.amount)}</div>
+        </div>
+      `).join('');
+    } else {
+      html = '<div class="empty-state">No expenses added yet.</div>';
+    }
+    const container = document.getElementById('expenses-container');
+    if (container) container.innerHTML = html;
+  }
+
+  function renderPacking() {
+    const container = document.getElementById('packing-container');
+    if (!tripData.packing || tripData.packing.length === 0) {
+      container.innerHTML = '<div class="empty-state">No packing items yet.</div>';
+      return;
+    }
+    container.innerHTML = tripData.packing.map(item => `
+      <div style="padding:10px; border-bottom:1px solid var(--border-soft); display:flex; align-items:center; gap:10px;">
+        <input type="checkbox" ${item.is_packed ? 'checked' : ''} onclick="togglePack(${item.id})">
+        <span style="${item.is_packed ? 'text-decoration:line-through;opacity:0.6' : ''}">${item.item_name}</span>
+      </div>
+    `).join('');
+  }
+
+  function renderNotes() {
+    const container = document.getElementById('notes-container');
+    if (!tripData.notes || tripData.notes.length === 0) {
+      container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">No notes added yet.</div>';
+      return;
+    }
+    container.innerHTML = tripData.notes.map(note => `
+      <div class="card" style="padding:15px;">
+        <h4>${note.title}</h4>
+        <p style="font-size:13px; margin-top:10px;">${note.content}</p>
+      </div>
+    `).join('');
+  }
+
+  async function addStop() {
+    const payload = {
+      city: document.getElementById('stop-city').value,
+      country: document.getElementById('stop-country').value,
+    };
+    try {
+      await API.post(`/api/trips/${currentTripId}/stops`, payload);
+      closeModal('add-stop-modal');
+      Toast.success('Stop added');
+      loadTrip();
+    } catch (err) {
+      Toast.error('Failed to add stop');
+    }
+  }
+
+  async function addActivity() {
+    const payload = {
+      name: document.getElementById('act-name').value,
+      date: document.getElementById('act-date').value,
+      cost: parseFloat(document.getElementById('act-cost').value) || 0,
+    };
+    try {
+      await API.post(`/api/trips/${currentTripId}/activities`, payload);
+      closeModal('add-activity-modal');
+      Toast.success('Activity added');
+      loadTrip();
+    } catch (err) {
+      Toast.error('Failed to add activity');
+    }
+  }
+
+  async function addExpense() {
+    const payload = {
+      amount: parseFloat(document.getElementById('exp-amount').value) || 0,
+      category: document.getElementById('exp-category').value,
+    };
+    try {
+      await API.post(`/api/trips/${currentTripId}/budget`, payload);
+      closeModal('add-expense-modal');
+      Toast.success('Expense added');
+      loadTrip();
+    } catch (err) {
+      Toast.error('Failed to add expense');
+    }
+  }
+
+  async function addPackingItem() {
+    const payload = {
+      item_name: document.getElementById('pack-name').value,
+    };
+    try {
+      await API.post(`/api/trips/${currentTripId}/packing`, payload);
+      closeModal('add-packing-modal');
+      Toast.success('Item added');
+      loadTrip();
+    } catch (err) {
+      Toast.error('Failed to add item');
+    }
+  }
+
+  async function addNote() {
+    const payload = {
+      title: document.getElementById('note-title').value,
+      content: document.getElementById('note-content').value,
+    };
+    try {
+      await API.post(`/api/trips/${currentTripId}/notes`, payload);
+      closeModal('add-note-modal');
+      Toast.success('Note added');
+      loadTrip();
+    } catch (err) {
+      Toast.error('Failed to add note');
+    }
+  }
+
+  async function togglePack(id) {
+    try {
+      await API.put(`/api/packing/${id}/toggle`);
+      loadTrip();
+    } catch (err) {
+      Toast.error('Failed to update packing status');
+    }
+  }
+</script>
+</body>
+</html>
